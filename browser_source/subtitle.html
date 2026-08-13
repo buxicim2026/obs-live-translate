@@ -1,0 +1,199 @@
+<!-- browser_source/subtitle.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBS Live Translate - 字幕</title>
+<style>
+  :root {
+    --font-size: 36px;
+    --font-color: #FFFFFF;
+    --bg-color: rgba(0, 0, 0, 0.6);
+    --position: bottom;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    overflow: hidden;
+    font-family: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', 'WenQuanYi Micro Hei', sans-serif;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  #subtitle-container {
+    position: relative;
+    width: 90%;
+    max-width: 1600px;
+    margin-bottom: 40px;
+    text-align: center;
+    min-height: 60px;
+  }
+
+  .subtitle-line {
+    display: inline-block;
+    padding: 12px 28px;
+    background: var(--bg-color);
+    color: var(--font-color);
+    font-size: var(--font-size);
+    font-weight: 600;
+    border-radius: 12px;
+    letter-spacing: 2px;
+    line-height: 1.5;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.3s ease-out;
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  .subtitle-line.fade-out {
+    animation: fadeOut 0.5s ease-in forwards;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  #status-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff4444;
+    transition: background 0.3s;
+    opacity: 0.5;
+  }
+
+  #status-indicator.connected { background: #44ff44; }
+  #status-indicator.speaking { background: #44aaff; }
+</style>
+</head>
+<body>
+<div id="status-indicator"></div>
+<div id="subtitle-container">
+  <div class="subtitle-line" id="current-subtitle"></div>
+</div>
+
+<script>
+(function() {
+  const WS_URL = 'ws://127.0.0.1:9559';
+  const subtitleEl = document.getElementById('current-subtitle');
+  const statusEl = document.getElementById('status-indicator');
+  let ws = null;
+  let reconnectTimer = null;
+  let fadeTimer = null;
+  let displayTime = 5000;
+
+  function connect() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = function() {
+      console.log('[字幕] WebSocket已连接');
+      statusEl.classList.add('connected');
+      statusEl.classList.remove('speaking');
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+    };
+
+    ws.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'subtitle') {
+          showSubtitle(data.text, data.is_final);
+        } else if (data.type === 'status_update') {
+          updateStatus(data.data);
+        }
+      } catch (e) {
+        console.error('[字幕] 消息解析失败:', e);
+      }
+    };
+
+    ws.onclose = function() {
+      console.log('[字幕] WebSocket已断开');
+      statusEl.classList.remove('connected', 'speaking');
+      scheduleReconnect();
+    };
+
+    ws.onerror = function(err) {
+      console.error('[字幕] WebSocket错误:', err);
+    };
+  }
+
+  function showSubtitle(text, isFinal) {
+    if (fadeTimer) {
+      clearTimeout(fadeTimer);
+      fadeTimer = null;
+    }
+
+    subtitleEl.classList.remove('fade-out');
+    subtitleEl.textContent = text;
+
+    if (isFinal) {
+      fadeTimer = setTimeout(() => {
+        subtitleEl.classList.add('fade-out');
+      }, displayTime);
+    }
+  }
+
+  function updateStatus(data) {
+    if (data.detection === 'speech') {
+      statusEl.classList.add('speaking');
+    } else {
+      statusEl.classList.remove('speaking');
+    }
+  }
+
+  function scheduleReconnect() {
+    if (!reconnectTimer) {
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, 2000);
+    }
+  }
+
+  // 监听URL参数以更新样式
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('fontSize')) {
+    document.documentElement.style.setProperty('--font-size', params.get('fontSize') + 'px');
+  }
+  if (params.get('fontColor')) {
+    document.documentElement.style.setProperty('--font-color', params.get('fontColor'));
+  }
+  if (params.get('bgColor')) {
+    document.documentElement.style.setProperty('--bg-color', params.get('bgColor'));
+  }
+  if (params.get('displayTime')) {
+    displayTime = parseInt(params.get('displayTime')) || 5000;
+  }
+
+  connect();
+})();
+</script>
+</body>
+</html>
