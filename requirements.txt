@@ -1,0 +1,14 @@
+# requirements.txt
+# OBS Live Translate - 实时字幕翻译插件依赖
+
+# 核心依赖
+sounddevice>=0.4.6
+numpy>=1.24.0
+websockets>=12.0
+aiohttp>=3.9.0
+
+# 编译工具
+pyinstaller>=6.0.0
+
+# 可选但推荐
+webrtcvad>=2.0.10
