@@ -17,6 +17,7 @@ pyinstaller --onefile --console \
     --name "obs-live-translate" \
     --add-data "browser_source:browser_source" \
     --add-data "dock:dock" \
+    --add-data "obs-script:obs-script" \
     --hidden-import sounddevice \
     --hidden-import numpy \
     --hidden-import websockets \
@@ -29,6 +30,8 @@ mkdir -p release/obs-live-translate
 cp dist/obs-live-translate release/obs-live-translate/
 cp -r browser_source release/obs-live-translate/
 cp -r dock release/obs-live-translate/
+cp -r obs-script release/obs-live-translate/
+cp install.py release/obs-live-translate/
 
 echo ""
 echo "============================================"
