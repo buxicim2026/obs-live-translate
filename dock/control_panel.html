@@ -1,4 +1,3 @@
-<!-- dock/control_panel.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -257,7 +256,7 @@
 </head>
 <body>
 
-<h1>🎙️ OBS Live Translate</h1>
+<h1>OBS Live Translate</h1>
 <p class="subtitle">实时字幕翻译控制面板</p>
 
 <!-- 状态栏 -->
@@ -271,13 +270,13 @@
 
 <!-- 字幕预览 -->
 <div class="section">
-  <h2>📝 字幕预览</h2>
+  <h2>字幕预览</h2>
   <div class="subtitle-preview" id="subtitlePreview">等待字幕...</div>
 </div>
 
 <!-- API设置 -->
 <div class="section">
-  <h2>🔑 API 设置</h2>
+  <h2>API 设置</h2>
   <div class="form-group">
     <label>API Key</label>
     <input type="password" id="apiKey" placeholder="输入你的API Key">
@@ -290,21 +289,21 @@
     <label>模型名称</label>
     <input type="text" id="modelName" value="qwen3.5-livetranslate-flash-realtime">
   </div>
-  <button class="btn btn-primary" onclick="saveSettings()" style="width:100%">💾 保存设置</button>
+  <button class="btn btn-primary" onclick="saveSettings()" style="width:100%">保存设置</button>
 </div>
 
 <!-- 功能开关 -->
 <div class="section">
-  <h2>⚙️ 功能设置</h2>
+  <h2>功能设置</h2>
   <div class="toggle-row">
-    <span>🎵 音乐检测</span>
+    <span>音乐检测</span>
     <label class="toggle">
       <input type="checkbox" id="musicDetection" checked>
       <span class="toggle-slider"></span>
     </label>
   </div>
   <div class="toggle-row">
-    <span>🌐 自动语言检测</span>
+    <span>自动语言检测</span>
     <label class="toggle">
       <input type="checkbox" id="autoLangDetect" checked>
       <span class="toggle-slider"></span>
@@ -322,13 +321,13 @@
 
 <!-- 操作按钮 -->
 <div class="btn-group">
-  <button class="btn btn-success" id="btnStart" onclick="toggleServer()" style="flex:1">▶ 启动服务</button>
-  <button class="btn btn-danger" id="btnStop" onclick="toggleServer()" style="flex:1;display:none">⏹ 停止服务</button>
+  <button class="btn btn-success" id="btnStart" onclick="toggleServer()" style="flex:1">启动服务</button>
+  <button class="btn btn-danger" id="btnStop" onclick="toggleServer()" style="flex:1;display:none">停止服务</button>
 </div>
 
 <!-- 日志 -->
 <div class="section" style="margin-top:12px;">
-  <h2>📋 日志</h2>
+  <h2>日志</h2>
   <div class="log-area" id="logArea">
     <div class="log-entry">等待连接...</div>
   </div>
@@ -355,7 +354,7 @@
     const entry = document.createElement('div');
     entry.className = 'log-entry ' + level;
     const time = new Date().toLocaleTimeString();
-    entry.textContent = `[${time}] ${msg}`;
+    entry.textContent = '[' + time + '] ' + msg;
     logArea.appendChild(entry);
     logArea.scrollTop = logArea.scrollHeight;
 
@@ -469,8 +468,6 @@
 
   function toggleServer() {
     addLog(isServerRunning ? '正在停止服务...' : '正在启动服务...', 'warn');
-    // 实际启动/停止由后端Python服务器控制
-    // 这里仅做UI状态切换
     isServerRunning = !isServerRunning;
     updateButtons();
   }
