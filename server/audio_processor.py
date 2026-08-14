@@ -1,4 +1,3 @@
-# server/audio_processor.py
 """语音活动检测(VAD)与音乐检测"""
 import logging
 
@@ -87,6 +86,10 @@ class AudioProcessor:
 
         return music_score >= 2
 
+    def get_rms(self):
+        """获取最近一次音频块的RMS值"""
+        return self._last_rms
+
     def should_process(self, audio_chunk):
         """判断是否应该处理这个音频块"""
         is_silent, rms_db = self.is_silence(audio_chunk)
@@ -97,7 +100,4 @@ class AudioProcessor:
         if is_music:
             return False, "music"
 
-        return True, f"speech ({rms_db:.1f} dB)"
-
-    def get_rms(self):
-        return self._last_rms
+        return True, "speech"
