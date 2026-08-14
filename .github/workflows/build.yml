@@ -25,10 +25,10 @@ jobs:
     
     steps:
       - name: 📥 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🐍 安装 Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -51,13 +51,13 @@ jobs:
             server/main.py
 
       - name: 📁 准备发布包
+        shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release/obs-live-translate
           Copy-Item dist/obs-live-translate.exe release/obs-live-translate/
           Copy-Item -Recurse browser_source release/obs-live-translate/browser_source
           Copy-Item -Recurse dock release/obs-live-translate/dock
           
-          # 创建 Windows 启动脚本
           @"
           @echo off
           chcp 65001 >nul
@@ -83,7 +83,7 @@ jobs:
           Compress-Archive -Path release/obs-live-translate/* -DestinationPath obs-live-translate-windows-x64.zip
 
       - name: 📤 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: obs-live-translate-windows-x64
           path: obs-live-translate-windows-x64.zip
@@ -98,10 +98,10 @@ jobs:
     
     steps:
       - name: 📥 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🐍 安装 Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -135,7 +135,6 @@ jobs:
           cp -r browser_source release/obs-live-translate/
           cp -r dock release/obs-live-translate/
           
-          # 创建 Linux 启动脚本
           cat > release/obs-live-translate/start.sh << 'EOF'
           #!/bin/bash
           echo "============================================"
@@ -155,7 +154,7 @@ jobs:
           tar -czf ../obs-live-translate-linux-x64.tar.gz obs-live-translate/
 
       - name: 📤 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: obs-live-translate-linux-x64
           path: obs-live-translate-linux-x64.tar.gz
@@ -166,18 +165,20 @@ jobs:
   # ============================================================
   build-macos:
     name: 🍎 macOS Apple Silicon
-    runs-on: macos-latest  # macOS 14+ 默认是 Apple Silicon (M1)
+    runs-on: macos-latest
     
     steps:
       - name: 📥 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🐍 安装 Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: 📦 安装系统依赖
+        env:
+          HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
         run: |
           brew install portaudio
 
@@ -207,7 +208,6 @@ jobs:
           cp -r browser_source release/obs-live-translate/
           cp -r dock release/obs-live-translate/
           
-          # 创建 macOS 启动脚本
           cat > release/obs-live-translate/start.command << 'EOF'
           #!/bin/bash
           echo "============================================"
@@ -221,23 +221,22 @@ jobs:
           chmod +x release/obs-live-translate/start.command
           chmod +x release/obs-live-translate/obs-live-translate
           
-          # 签名以允许运行
           codesign --force --deep --sign - release/obs-live-translate/obs-live-translate 2>/dev/null || true
 
-      - name: 📦 打包为 dmg 格式 zip
+      - name: 📦 打包为 zip
         run: |
           cd release
           zip -r ../obs-live-translate-macos-arm64.zip obs-live-translate/
 
       - name: 📤 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: obs-live-translate-macos-arm64
           path: obs-live-translate-macos-arm64.zip
           retention-days: 30
 
   # ============================================================
-  #  创建 GitHub Release (仅在推送 tag 或手动触发时)
+  #  创建 GitHub Release
   # ============================================================
   create-release:
     name: 📦 创建 Release
@@ -251,7 +250,7 @@ jobs:
     
     steps:
       - name: 📥 下载所有构建产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: artifacts
 
@@ -262,7 +261,6 @@ jobs:
           cp artifacts/obs-live-translate-linux-x64/obs-live-translate-linux-x64.tar.gz release-assets/
           cp artifacts/obs-live-translate-macos-arm64/obs-live-translate-macos-arm64.zip release-assets/
           
-          # 生成 SHA256 校验文件
           cd release-assets
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
@@ -291,18 +289,15 @@ jobs:
             
             ### 📖 使用说明
             1. 下载对应平台的压缩包并解压
-            2. 运行启动脚本（Windows: `启动.bat` / Linux: `start.sh` / macOS: `start.command`）
+            2. 运行启动脚本
             3. 在 OBS 中添加「浏览器」源，URL 指向 `browser_source/subtitle.html`
-            4. 在 OBS 中添加「自定义浏览器停靠部件」，URL 指向 `dock/control_panel.html`
+            4. 在 OBS 中「视图 → 停靠部件 → 自定义浏览器停靠部件」，URL 指向 `dock/control_panel.html`
             5. 在控制面板中填入你的 API Key 并保存
             
             ### ⚠️ 音频捕获准备
             - **Windows**: 启用「立体声混音」设备
-            - **macOS**: 安装 [BlackHole](https://github.com/ExistentialAudio/BlackHole) (`brew install blackhole-2ch`)
+            - **macOS**: 安装 [BlackHole](https://github.com/ExistentialAudio/BlackHole)
             - **Linux**: 使用 PulseAudio Monitor
-            
-            ### 🔑 API 配置
-            默认使用阿里云 DashScope 的 Qwen 模型，也支持任何兼容 OpenAI 接口的 API。
             
             ---
             *自动构建于 ${{ github.event.repository.updated_at }}*
