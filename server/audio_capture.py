@@ -1,4 +1,3 @@
-# server/audio_capture.py
 """跨平台系统音频捕获模块"""
 import asyncio
 import logging
