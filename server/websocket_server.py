@@ -1,4 +1,3 @@
-# server/websocket_server.py
 """WebSocket服务器 - 向浏览器源推送字幕"""
 import asyncio
 import json
@@ -52,13 +51,25 @@ class SubtitleWebSocketServer:
                 )
             )
         elif msg_type == "get_config":
-            from .config import load_config
+            from config import load_config
 
             cfg = load_config()
             # 不返回API Key
             cfg.pop("api_key", None)
             await websocket.send(
                 json.dumps({"type": "config", "data": cfg})
+            )
+        elif msg_type == "update_config":
+            from config import load_config, save_config
+
+            cfg = load_config()
+            update_data = data.get("data", {})
+            for key, value in update_data.items():
+                if key in cfg:
+                    cfg[key] = value
+            save_config(cfg)
+            await websocket.send(
+                json.dumps({"type": "config_saved", "success": True})
             )
 
     async def broadcast_subtitle(self, text, is_final=True):
