@@ -1,4 +1,3 @@
-# server/translator.py
 """大模型API调用模块 - 支持Qwen等兼容OpenAI接口的模型"""
 import asyncio
 import base64
