@@ -19,6 +19,7 @@ pyinstaller --onefile --console ^
     --name "obs-live-translate" ^
     --add-data "browser_source;browser_source" ^
     --add-data "dock;dock" ^
+    --add-data "obs-script;obs-script" ^
     --hidden-import sounddevice ^
     --hidden-import numpy ^
     --hidden-import websockets ^
@@ -31,7 +32,9 @@ if not exist "release\obs-live-translate" mkdir "release\obs-live-translate"
 copy "dist\obs-live-translate.exe" "release\obs-live-translate\"
 xcopy /E /I "browser_source" "release\obs-live-translate\browser_source"
 xcopy /E /I "dock" "release\obs-live-translate\dock"
+xcopy /E /I "obs-script" "release\obs-live-translate\obs-script"
 copy "start.bat" "release\obs-live-translate\"
+copy "install.py" "release\obs-live-translate\"
 
 echo.
 echo ============================================
