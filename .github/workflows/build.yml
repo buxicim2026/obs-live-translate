@@ -15,6 +15,9 @@ on:
         type: boolean
         default: true
 
+env:
+  PYTHON_VERSION: '3.11'
+
 jobs:
   # ============================================================
   #  Windows 构建
@@ -30,7 +33,7 @@ jobs:
       - name: 🐍 安装 Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: 📦 安装依赖
         run: |
@@ -43,6 +46,7 @@ jobs:
             --name "obs-live-translate" `
             --add-data "browser_source;browser_source" `
             --add-data "dock;dock" `
+            --add-data "obs-script;obs-script" `
             --hidden-import sounddevice `
             --hidden-import numpy `
             --hidden-import websockets `
@@ -57,6 +61,8 @@ jobs:
           Copy-Item dist/obs-live-translate.exe release/obs-live-translate/
           Copy-Item -Recurse browser_source release/obs-live-translate/browser_source
           Copy-Item -Recurse dock release/obs-live-translate/dock
+          Copy-Item -Recurse obs-script release/obs-live-translate/obs-script
+          Copy-Item install.py release/obs-live-translate/
           
           @"
           @echo off
@@ -103,12 +109,12 @@ jobs:
       - name: 🐍 安装 Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: 📦 安装系统依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y portaudio19-dev python3-dev
+          sudo apt-get install -y portaudio19-dev python3-dev libportaudio2
 
       - name: 📦 安装 Python 依赖
         run: |
@@ -121,6 +127,7 @@ jobs:
             --name "obs-live-translate" \
             --add-data "browser_source:browser_source" \
             --add-data "dock:dock" \
+            --add-data "obs-script:obs-script" \
             --hidden-import sounddevice \
             --hidden-import numpy \
             --hidden-import websockets \
@@ -134,6 +141,8 @@ jobs:
           cp dist/obs-live-translate release/obs-live-translate/
           cp -r browser_source release/obs-live-translate/
           cp -r dock release/obs-live-translate/
+          cp -r obs-script release/obs-live-translate/
+          cp install.py release/obs-live-translate/
           
           cat > release/obs-live-translate/start.sh << 'EOF'
           #!/bin/bash
@@ -174,7 +183,7 @@ jobs:
       - name: 🐍 安装 Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: 📦 安装系统依赖
         env:
@@ -193,6 +202,7 @@ jobs:
             --name "obs-live-translate" \
             --add-data "browser_source:browser_source" \
             --add-data "dock:dock" \
+            --add-data "obs-script:obs-script" \
             --hidden-import sounddevice \
             --hidden-import numpy \
             --hidden-import websockets \
@@ -207,6 +217,8 @@ jobs:
           cp dist/obs-live-translate release/obs-live-translate/
           cp -r browser_source release/obs-live-translate/
           cp -r dock release/obs-live-translate/
+          cp -r obs-script release/obs-live-translate/
+          cp install.py release/obs-live-translate/
           
           cat > release/obs-live-translate/start.command << 'EOF'
           #!/bin/bash
