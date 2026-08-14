@@ -1,4 +1,3 @@
-# server/config.py
 import json
 import os
 import sys
@@ -15,6 +14,17 @@ def get_app_dir():
     app_dir = os.path.join(base, "obs-live-translate")
     os.makedirs(app_dir, exist_ok=True)
     return app_dir
+
+
+def get_resource_dir():
+    """获取资源目录（支持PyInstaller打包后的路径）"""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller 打包后的路径
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # 开发环境
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return base_path
 
 
 CONFIG_PATH = os.path.join(get_app_dir(), "config.json")
