@@ -1,0 +1,16 @@
+livecaptions/
+├── main.go                      入口 / CLI
+├── go.mod                       依赖（gorilla/websocket, pflag）
+├── build.sh / build.bat         跨平台编译
+├── README.md / CHANGELOG.md     文档
+├── internal/
+│   ├── config/                  持久化配置（~/.livecaptions/config.json, 0600 权限）
+│   ├── audio/                   ffmpeg 子进程 + VAD + 音乐检测（含单元测试）
+│   ├── qwen/                    DashScope Realtime WebSocket 客户端
+│   ├── obs/                     OBS WebSocket 客户端（侧边栏状态用）
+│   └── server/                  HTTP + WebSocket Hub + REST API
+└── web/
+    ├── index.html               配置 & 控制台
+    ├── source.html              OBS 浏览器源（透明叠加字幕）
+    ├── dock.html                OBS 侧边栏
+    └── css/, js/                样式和逻辑
