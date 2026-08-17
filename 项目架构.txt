@@ -1,0 +1,20 @@
+obs-live-translate/
+├── server/                    # Python 后端
+│   ├── main.py                # 主程序入口
+│   ├── config.py              # 配置管理（跨平台）
+│   ├── audio_capture.py       # 系统音频捕获（sounddevice）
+│   ├── audio_processor.py     # 静音/音乐检测（VAD）
+│   ├── translator.py          # 大模型 API 调用（同声传译）
+│   └── websocket_server.py    # HTTP + WebSocket 服务器（aiohttp）
+├── browser_source/
+│   └── subtitle.html          # OBS 浏览器源（字幕叠加层）
+├── dock/
+│   └── control_panel.html     # OBS 侧边栏控制台
+├── build/                     # 本地构建脚本
+│   ├── build_windows.bat
+│   ├── build_linux.sh
+│   └── build_macos.sh
+├── .github/workflows/
+│   └── build.yml              # GitHub Actions 自动构建 + Release
+├── start.bat                  # Windows 启动脚本
+└── requirements.txt           # Python 依赖
