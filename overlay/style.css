@@ -1,0 +1,87 @@
+/* Browser Source overlay for live subtitles.
+   Width/height of the OBS browser source should be set to the intended
+   on-screen region. The stage is anchored to the bottom (or top/middle)
+   via the body class. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; background: transparent; }
+body {
+  font-family: "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC",
+               "Source Han Sans CN", "WenQuanYi Micro Hei", sans-serif;
+  color: #fff;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 32px 32px;
+  overflow: hidden;
+}
+
+/* Position variants — applied via body class. */
+body.position-bottom { align-items: flex-end; }
+body.position-top    { align-items: flex-start; padding: 32px 32px 0; }
+body.position-middle { align-items: center; }
+
+#stage {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.caption {
+  display: inline-block;
+  max-width: min(92%, 1400px);
+  padding: 14px 28px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  text-align: center;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-weight: 600;
+  font-size: 48px;
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.6),
+    0 0 2px rgba(0, 0, 0, 0.8);
+  transition: opacity 200ms ease, transform 200ms ease;
+  position: relative;
+  min-height: 1.4em;
+}
+
+.caption.empty {
+  opacity: 0;
+}
+
+body.layout-double .caption { font-size: 40px; }
+body.layout-double .caption .caption-line + .caption-line { display: block; margin-top: 6px; }
+
+body.animation-fade    .caption { transition: opacity 240ms ease; }
+body.animation-slide   .caption { transition: transform 240ms ease, opacity 240ms ease; }
+body.animation-typewriter .caption-line { border-right: 0.04em solid transparent; }
+
+/* Typewriter cursor */
+.caption-cursor {
+  display: inline-block;
+  width: 0.55ch;
+  background: currentColor;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  height: 1.1em;
+  animation: blink 0.9s steps(1) infinite;
+  opacity: 0.6;
+}
+body.animation-fade .caption-cursor,
+body.animation-slide .caption-cursor { display: none; }
+@keyframes blink { 0%, 50% { opacity: 0.6; } 50.01%, 100% { opacity: 0; } }
+
+/* Slide-in variants. */
+body.animation-slide .caption { transform: translateY(8px); }
+body.animation-slide .caption.show { transform: translateY(0); }
+
+/* Color helpers overridden by JS. */
+.caption { color: var(--caption-color, #FFFFFF); }
+.caption { background: var(--caption-bg, rgba(0,0,0,0.55)); }
+.caption { font-size: var(--caption-size, 48px); }
