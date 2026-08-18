@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>Stream Live Translate · 控制台</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/admin-assets/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">●</span>
+      <span>Stream Live Translate</span>
+    </div>
+    <div class="status-strip" id="status-strip">
+      <span class="dot" id="dot-audio"></span><span>音频</span>
+      <span class="dot" id="dot-llm"></span><span>大模型</span>
+      <span class="dot" id="dot-obs"></span><span>OBS</span>
+      <span class="sep">·</span>
+      <a id="bind-url" target="_blank" rel="noopener">打开浏览器源</a>
+      <span class="sep">·</span>
+      <a id="overlay-url" target="_blank" rel="noopener">/overlay</a>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="card">
+      <h2>1. 大模型</h2>
+      <p class="hint">填入你自己的大模型 API Key。所有内容只在本地保存。</p>
+      <label>Provider
+        <select id="provider">
+          <option value="qwen-realtime">Qwen Realtime (DashScope)</option>
+          <option value="openai-realtime">OpenAI Realtime</option>
+          <option value="mock">Mock（不消耗额度）</option>
+        </select>
+      </label>
+      <label>Model
+        <input id="model" type="text" placeholder="qwen3.5-livetranslate-flash-realtime" />
+      </label>
+      <label>API Key
+        <input id="api_key" type="password" placeholder="sk-..." />
+      </label>
+      <label>翻译目标语言
+        <input id="target_lang" type="text" value="zh" />
+      </label>
+      <label class="row">
+        <input id="translate_chinese" type="checkbox" />
+        <span>对中文也调用翻译（默认否，节省 token）</span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>2. 音频输入</h2>
+      <p class="hint">系统音频环回 = 抓取 OBS 当前听到的声音；麦克风 = 抓指定输入设备。</p>
+      <label>模式
+        <select id="audio-mode">
+          <option value="system">系统音频环回（推荐）</option>
+          <option value="device">指定输入/输出设备</option>
+        </select>
+      </label>
+      <label>设备
+        <select id="audio-device"></select>
+      </label>
+      <label class="row">
+        <input id="use_sck" type="checkbox" />
+        <span>macOS 使用 ScreenCaptureKit（需要授予"屏幕录制"权限）</span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>3. OBS 集成</h2>
+      <p class="hint">插件自动连接本机 OBS（obs-websocket v5），可把字幕同步写入一个"Subtitles"文本源。</p>
+      <label class="row">
+        <input id="obs-auto" type="checkbox" />
+        <span>启动时自动连接</span>
+      </label>
+      <label>OBS WebSocket 地址
+        <input id="obs-host" type="text" placeholder="127.0.0.1" />
+      </label>
+      <label>OBS 端口
+        <input id="obs-port" type="number" value="4455" />
+      </label>
+      <label>OBS 密码（如果开启了）
+        <input id="obs-password" type="password" />
+      </label>
+      <p class="hint obs-dock-hint">
+        想把控制台钉到 OBS 侧边栏？OBS → 顶部菜单 <b>工具</b> → <b>自定义浏览器停靠面板 (Custom Browser Docks)</b> →
+        填入 <code id="obs-dock-url"></code>，名称随意。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>4. 字幕样式</h2>
+      <p class="hint">这些值会写入浏览器源的 URL hash 覆盖默认值。</p>
+      <label>字体大小 (px)
+        <input id="ov-size" type="number" value="48" />
+      </label>
+      <label>颜色
+        <input id="ov-color" type="color" value="#ffffff" />
+      </label>
+      <label>背景
+        <input id="ov-bg" type="color" value="#000000" />
+      </label>
+      <label>位置
+        <select id="ov-position">
+          <option value="bottom">底部</option>
+          <option value="top">顶部</option>
+          <option value="middle">中间</option>
+        </select>
+      </label>
+      <label>动画
+        <select id="ov-animation">
+          <option value="typewriter">打字机</option>
+          <option value="fade">淡入淡出</option>
+          <option value="slide">滑入</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="card wide">
+      <h2>5. 实时字幕预览</h2>
+      <div class="preview">
+        <div id="preview-stage" class="preview-stage position-bottom">
+          <div id="preview-caption" class="preview-caption empty">
+            <span id="preview-line"></span>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="save-btn">保存配置</button>
+        <button id="restart-btn" class="ghost">重启管线</button>
+        <button id="clear-btn" class="ghost">清空字幕</button>
+        <span id="save-status" class="status"></span>
+      </div>
+    </section>
+
+    <section class="card wide">
+      <h2>6. 历史</h2>
+      <div id="history" class="history"></div>
+    </section>
+  </main>
+
+  <script src="/admin-assets/app.js"></script>
+</body>
+</html>
