@@ -1,4 +1,4 @@
-# Cross-platform build + package for OBS Live Translate.
+# Cross-platform build + package for Stream Live Translate.
 # Windows PowerShell entry point. Builds the current host and packages
 # release/<platform>/. For cross-compiling, run this on each target OS
 # or use the GitHub Actions workflow at .github/workflows/release.yml.
@@ -56,7 +56,7 @@ switch -Regex ($Target) {
 }
 
 New-Item -ItemType Directory -Force -Path "$outDir/bin" | Out-Null
-Copy-Item -Force "target/$Target/release/obs-live-translate$ext" "$outDir/bin/"
+Copy-Item -Force "target/$Target/release/stream-live-translate$ext" "$outDir/bin/"
 Copy-Item -Recurse -Force dist/overlay dist/admin $outDir/
 Copy-Item -Force dist/launcher.bat $outDir/
 if (Test-Path dist/launcher.sh) { Copy-Item -Force dist/launcher.sh $outDir/ }

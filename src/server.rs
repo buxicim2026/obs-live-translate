@@ -90,7 +90,7 @@ fn build_router(state: Arc<AppState>, static_dir: PathBuf) -> Router {
 }
 
 async fn root_handler() -> &'static str {
-    "obs-live-translate is running. Visit /admin to configure, /overlay for the browser source."
+    "stream-live-translate is running. Visit /admin to configure, /overlay for the browser source."
 }
 
 async fn admin_handler() -> Response {
@@ -392,7 +392,7 @@ fn config_path() -> std::path::PathBuf {
         return local;
     }
     if let Some(mut dir) = dirs::config_dir() {
-        dir.push("obs-live-translate");
+        dir.push("stream-live-translate");
         dir.push("config.toml");
         return dir;
     }

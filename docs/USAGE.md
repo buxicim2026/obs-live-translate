@@ -15,7 +15,7 @@
 * macOS / Linux：终端里 `./launcher.sh`（或者 `open launcher.sh`）
 
 启动器会：
-1. 后台拉起 `obs-live-translate(.exe)`；
+1. 后台拉起 `stream-live-translate(.exe)`；
 2. 自动打开 `http://127.0.0.1:8787/admin`；
 3. 写一份 `config.toml` 到可执行文件同目录（第一次），里面是默认值。
 
@@ -77,7 +77,7 @@ OBS 顶部菜单 -> **工具** -> **自定义浏览器停靠面板 (Custom Brows
 
 ## 8. 关掉插件
 
-* 直接关终端窗口 / 任务管理器结束 `obs-live-translate(.exe)`。
+* 直接关终端窗口 / 任务管理器结束 `stream-live-translate(.exe)`。
 * 想"暂停字幕"但保留进程：在管理面板里把 API Key 清空并保存，LLM 会自动断开，音频继续抓但不上送。
 
 ## 9. 跨设备跑
@@ -85,7 +85,7 @@ OBS 顶部菜单 -> **工具** -> **自定义浏览器停靠面板 (Custom Brows
 默认服务只绑 `127.0.0.1`，别的机器访问不到。想跨设备看（很常见的远程直播场景）：
 
 ```bash
-obs-live-translate --host 0.0.0.0 --port 8787
+stream-live-translate --host 0.0.0.0 --port 8787
 ```
 
 ⚠️ 这种模式 API Key 会以 URL 不带 query 的方式走明文 HTTP（127.0.0.1 之外不安全）。生产场景建议接 nginx / Caddy 反向代理 + TLS。

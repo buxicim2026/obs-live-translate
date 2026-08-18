@@ -1,6 +1,6 @@
 # 编译指南
 
-OBS Live Translate 用 Rust 1.74+ 写，跨平台只依赖各系统的标准库。下面按平台给出"装好就能编译"的最短步骤。
+Stream Live Translate 用 Rust 1.74+ 写，跨平台只依赖各系统的标准库。下面按平台给出"装好就能编译"的最短步骤。
 
 ## 通用前置
 
@@ -32,11 +32,11 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 ```bash
 cargo build --release
-# 产物 target/release/obs-live-translate
-# Windows 下叫 obs-live-translate.exe
+# 产物 target/release/stream-live-translate
+# Windows 下叫 stream-live-translate.exe
 ```
 
-把 `target/release/obs-live-translate(.exe)` 与 `dist/overlay`、`dist/admin` 两个目录放在同一级，就是完整的"零安装"插件包。
+把 `target/release/stream-live-translate(.exe)` 与 `dist/overlay`、`dist/admin` 两个目录放在同一级，就是完整的"零安装"插件包。
 
 ## 跨平台正式版
 
@@ -50,14 +50,14 @@ cargo build --release
 ```bash
 # 在 macOS arm64 上
 ./scripts/build-all.sh
-# -> release/macos-arm64/obs-live-translate
+# -> release/macos-arm64/stream-live-translate
 # -> release/macos-arm64.tar.gz
 ```
 
 ```powershell
 # 在 Windows 上
 powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
-# -> release\windows-x64\bin\obs-live-translate.exe
+# -> release\windows-x64\bin\stream-live-translate.exe
 # -> release\windows-x64.zip
 ```
 
@@ -98,7 +98,7 @@ cargo test
 跑：
 
 ```bash
-RUST_LOG=info ./target/release/obs-live-translate
+RUST_LOG=info ./target/release/stream-live-translate
 # 然后浏览器打开
 # http://127.0.0.1:8787/admin
 # http://127.0.0.1:8787/overlay
@@ -118,7 +118,7 @@ model = "mock"
 已经默认开了 `lto = "thin"` + `strip = "symbols"`。再小可以加 UPX：
 
 ```bash
-upx --best target/release/obs-live-translate
+upx --best target/release/stream-live-translate
 ```
 
 ## 安装到 OBS 文件夹
@@ -127,12 +127,12 @@ upx --best target/release/obs-live-translate
 
 | 平台 | 路径 |
 | --- | --- |
-| Windows | `C:\Program Files\obs-studio\plugins\obs-live-translate\` |
-| macOS | `/Applications/OBS.app/Contents/Resources/obs-live-translate/` |
-| Linux | `~/.local/share/obs-studio/plugins/obs-live-translate/` |
+| Windows | `C:\Program Files\obs-studio\plugins\stream-live-translate\` |
+| macOS | `/Applications/OBS.app/Contents/Resources/stream-live-translate/` |
+| Linux | `~/.local/share/obs-studio/plugins/stream-live-translate/` |
 
 然后：
 
-* Windows：双击 `obs-live-translate/launcher.bat`
-* macOS：双击 `obs-live-translate/launcher.sh`
-* Linux：终端里 `./obs-live-translate/launcher.sh`
+* Windows：双击 `stream-live-translate/launcher.bat`
+* macOS：双击 `stream-live-translate/launcher.sh`
+* Linux：终端里 `./stream-live-translate/launcher.sh`

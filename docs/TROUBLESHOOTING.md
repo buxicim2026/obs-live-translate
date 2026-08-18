@@ -16,7 +16,7 @@
 
 ## macOS 上抓不到系统声音
 
-* 打开 *系统设置 -> 隐私与安全性 -> 屏幕录制*，把 `obs-live-translate` 加进去。
+* 打开 *系统设置 -> 隐私与安全性 -> 屏幕录制*，把 `stream-live-translate` 加进去。
 * 第一次启动时 macOS 会弹一次授权，没弹就是被静默拒绝 —— 重新进系统设置勾上。
 * 如果你的 OBS 是从 App Store 装的，权限可能挂在 App Store 自己的进程上；以非 App Store 渠道装的 OBS 通常没问题。
 
@@ -69,4 +69,4 @@ netstat -ano | findstr 8787   # Windows
 
 * 默认打到 stderr（启动器用 `start /min` 时被 Windows 静默，需要看日志请用 `launcher.bat --console`）。
 * 自定义：`set RUST_LOG=debug` (Windows) / `export RUST_LOG=debug` (macOS / Linux) 后再启动。
-* 想持久化：`obs-live-translate 2>>plugin.log`（POSIX）或 `obs-live-translate.exe 2> plugin.log`（cmd）。
+* 想持久化：`stream-live-translate 2>>plugin.log`（POSIX）或 `stream-live-translate.exe 2> plugin.log`（cmd）。

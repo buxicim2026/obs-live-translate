@@ -21,12 +21,12 @@ use crate::config::Config;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "obs-live-translate",
+    name = "stream-live-translate",
     version,
     about = "Real-time AI subtitle overlay for OBS Studio"
 )]
 struct Cli {
-    /// Path to config.toml. Defaults to ./config.toml, then ~/.config/obs-live-translate/config.toml.
+    /// Path to config.toml. Defaults to ./config.toml, then ~/.config/stream-live-translate/config.toml.
     #[arg(long, short = 'c', global = true)]
     config: Option<PathBuf>,
 
@@ -72,7 +72,7 @@ fn resolve_config_path(cli_path: Option<PathBuf>) -> PathBuf {
         return local;
     }
     if let Some(mut dir) = dirs::config_dir() {
-        dir.push("obs-live-translate");
+        dir.push("stream-live-translate");
         dir.push("config.toml");
         return dir;
     }
@@ -132,7 +132,7 @@ async fn main() -> Result<()> {
     info!(
         host = %cfg.server.host,
         port = cfg.server.port,
-        "obs-live-translate running"
+        "stream-live-translate running"
     );
 
     // Wait for Ctrl-C / SIGTERM.
@@ -152,7 +152,7 @@ async fn main() -> Result<()> {
 fn init_tracing() {
     use tracing_subscriber::{fmt, EnvFilter};
     let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,obs_live_translate=info"));
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,stream_live_translate=info"));
     fmt().with_env_filter(filter).with_target(false).init();
 }
 

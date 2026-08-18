@@ -56,7 +56,7 @@ jobs:
           case "${{ matrix.target }}" in
             *windows*) ext=".exe" ;;
           esac
-          cp "target/${{ matrix.target }}/release/obs-live-translate$ext" "$out/bin/"
+          cp "target/${{ matrix.target }}/release/stream-live-translate$ext" "$out/bin/"
           cp -R dist/overlay dist/admin "$out/"
           cp dist/launcher.sh "$out/launcher.sh"
           chmod +x "$out/launcher.sh"

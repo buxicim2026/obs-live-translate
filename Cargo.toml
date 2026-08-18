@@ -1,18 +1,18 @@
 [package]
-name = "obs-live-translate"
+name = "stream-live-translate"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.74"
-authors = ["OBS Live Translate Contributors"]
+authors = ["Stream Live Translate Contributors"]
 description = "Real-time AI subtitle overlay for OBS Studio. Capture system audio, stream it to a realtime translation model, and render Chinese subtitles in a Browser Source."
 license = "MIT"
-repository = "https://github.com/yourname/obs-live-translate"
+repository = "https://github.com/yourname/stream-live-translate"
 readme = "README.md"
 keywords = ["obs", "subtitles", "live", "translation", "ai"]
 categories = ["multimedia", "network"]
 
 [[bin]]
-name = "obs-live-translate"
+name = "stream-live-translate"
 path = "src/main.rs"
 
 # We want a tiny release binary that *embeds* all of the dist/ assets so

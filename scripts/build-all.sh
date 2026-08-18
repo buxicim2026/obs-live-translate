@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cross-platform build + package script for OBS Live Translate.
+# Cross-platform build + package script for Stream Live Translate.
 # Produces `release/<platform>/` with the binary and all static assets,
 # then zips it.
 set -euo pipefail
@@ -21,7 +21,7 @@ rustup target add "$TARGET" >/dev/null 2>&1 || true
 cargo build --release --target "$TARGET"
 
 mkdir -p "$OUTDIR/bin"
-cp "target/$TARGET/release/obs-live-translate" "$OUTDIR/bin/"
+cp "target/$TARGET/release/stream-live-translate" "$OUTDIR/bin/"
 cp -R dist/overlay dist/admin "$OUTDIR/"
 cp dist/launcher.sh "$OUTDIR/launcher.sh"
 chmod +x "$OUTDIR/launcher.sh"
@@ -30,7 +30,7 @@ cp dist/README.txt "$OUTDIR/"
 
 # Pick a friendly exe name on Windows.
 if [[ "$TARGET" == *windows* ]]; then
-  mv "$OUTDIR/bin/obs-live-translate" "$OUTDIR/bin/obs-live-translate.exe"
+  mv "$OUTDIR/bin/stream-live-translate" "$OUTDIR/bin/stream-live-translate.exe"
 fi
 
 OUTFILE="$OUTDIR.tar.gz"
