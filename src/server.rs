@@ -79,6 +79,8 @@ fn build_router(state: Arc<AppState>, static_dir: PathBuf) -> Router {
             ServeDir::new(overlay_dir).fallback(axum::routing::get(embedded_overlay_asset)),
         )
         .nest_service("/bin", ServeDir::new(bin_dir))
+        .route("/admin-assets/{*path}", get(embedded_admin_asset))
+        .route("/overlay-assets/{*path}", get(embedded_overlay_asset))
         .route("/_assets/{*path}", get(embedded_any_asset))
         .layer(CorsLayer::permissive())
         .layer(SetResponseHeaderLayer::if_not_present(
@@ -382,7 +384,7 @@ async fn ws_loop(mut socket: WebSocket, state: Arc<AppState>) {
 }
 
 fn config_path() -> std::path::PathBuf {
-    if let Some(p) = std::env::var_os("SLT_CONFIG") {
+    if let Some(p) = std::env::var_os("OLT_CONFIG") {
         return std::path::PathBuf::from(p);
     }
     let local = std::path::PathBuf::from("config.toml");

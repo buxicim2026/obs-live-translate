@@ -96,9 +96,9 @@ impl AudioCapturer {
 
         let sample_format = supported.sample_format();
         let stream = match sample_format {
-            SampleFormat::F32 => build_stream::<f32>(&device, &config, tx.clone(), true),
-            SampleFormat::I16 => build_stream::<i16>(&device, &config, tx.clone(), false),
-            SampleFormat::U16 => build_stream::<u16>(&device, &config, tx.clone(), false),
+            SampleFormat::F32 => build_stream::<f32>(&device, &config, tx.clone()),
+            SampleFormat::I16 => build_stream::<i16>(&device, &config, tx.clone()),
+            SampleFormat::U16 => build_stream::<u16>(&device, &config, tx.clone()),
             other => {
                 return Err(anyhow!(
                     "unsupported sample format {other:?}; please file an issue"
@@ -156,36 +156,24 @@ fn build_stream<T>(
     device: &cpal::Device,
     config: &StreamConfig,
     tx: PcmSender,
-    is_float: bool,
 ) -> Result<Stream>
 where
-    T: cpal::Sample + cpal::SizedSample + Send + 'static,
-    i16: cpal::FromSample<T>,
+    T: cpal::Sample + Send + 'static,
     f32: cpal::FromSample<T>,
 {
     let err_tx = tx.clone();
+    let channels = config.channels as usize;
     let stream = device.build_input_stream(
         config,
         move |data: &[T], _info| {
-            let mut out = Vec::with_capacity(data.len());
-            if is_float {
-                for frame in data.chunks(config.channels as usize) {
-                    let mut acc = 0.0f32;
-                    for s in frame {
-                        acc += <f32 as cpal::FromSample<T>>::from_sample(*s);
-                    }
-                    let mono = acc / config.channels as f32;
-                    out.push((mono.clamp(-1.0, 1.0) * i16::MAX as f32) as i16);
+            let mut out = Vec::with_capacity(data.len() / channels.max(1));
+            for frame in data.chunks(channels.max(1)) {
+                let mut acc = 0.0f32;
+                for s in frame {
+                    acc += <f32 as cpal::FromSample<T>>::from_sample_(*s);
                 }
-            } else {
-                for frame in data.chunks(config.channels as usize) {
-                    let mut acc = 0.0f32;
-                    for s in frame {
-                        acc += <f32 as cpal::FromSample<T>>::from_sample(*s);
-                    }
-                    let mono = acc / config.channels as f32;
-                    out.push((mono.clamp(-1.0, 1.0) * i16::MAX as f32) as i16);
-                }
+                let mono = acc / channels.max(1) as f32;
+                out.push((mono.clamp(-1.0, 1.0) * i16::MAX as f32) as i16);
             }
             // Best-effort send; drop on backpressure.
             let _ = err_tx.try_send(out);

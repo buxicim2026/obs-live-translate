@@ -1,6 +1,6 @@
 [package]
 name = "stream-live-translate"
-version = "0.1.0"
+version = "0.6.0"
 edition = "2021"
 rust-version = "1.74"
 authors = ["Stream Live Translate Contributors"]
@@ -80,17 +80,6 @@ rand = "0.8"
 # at compile time so the final distributable is a SINGLE file. End users
 # do not need to copy any folder or install any extra files.
 include_dir = "0.7"
-
-# Tray icon (best-effort, used only when feature enabled)
-[target.'cfg(target_os = "windows")'.dependencies]
-trayicon = "0.4"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-trayicon = "0.4"
-objc = "0.2"
-
-[target.'cfg(target_os = "linux")'.dependencies]
-trayicon = "0.4"
 
 [features]
 default = []
