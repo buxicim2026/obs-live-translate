@@ -3,11 +3,10 @@
 //!   * status (connected / version / last error)
 //!   * a command channel to update a Text Source ("Subtitles") with the
 //!     latest line and to broadcast custom events to OBS.
-//!
-//! The "Custom Dock" entry is added by the user once via OBS's
-//! `Tools -> Custom Browser Docks...` menu pointing at
-//! `http://127.0.0.1:<port>/admin?obsDock=1`. The admin page detects that
-//! flag and renders a compact dock view.
+//!   * automatic creation of a hidden `browser_source` named
+//!     "StreamLiveTranslateAdmin" that hosts the admin panel, so the user
+//!     can open it as an in-OBS panel via OpenInputInteract (no external
+//!     browser window required after the very first launch).
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -24,6 +23,11 @@ use tracing::{info, warn};
 use crate::config::ObsConfig;
 use crate::AppState;
 
+/// The OBS input (browser source) name we auto-create to host the admin
+/// panel inside OBS. Users can find it under Sources and use the
+/// "Interact" button to manage the plugin without leaving OBS.
+pub const DOCK_INPUT_NAME: &str = "StreamLiveTranslateAdmin";
+
 #[derive(Debug, Clone)]
 pub struct ObsStatus {
     pub connected: bool,
@@ -36,12 +40,17 @@ pub struct ObsClient {
     status: Arc<Mutex<ObsStatus>>,
     cmd_tx: Option<mpsc::Sender<ObsCommand>>,
     task: Option<tokio::task::JoinHandle<()>>,
+    /// Last known admin URL (host:port). Used to rebuild the browser
+    /// source after reconnects.
+    admin_url: Arc<Mutex<Option<String>>>,
 }
 
 #[derive(Debug, Clone)]
 pub enum ObsCommand {
     UpdateTextSource { name: String, text: String },
     BroadcastEvent { event: String, data: serde_json::Value },
+    /// Open the admin panel as an interactive panel inside OBS.
+    OpenAdminInObs,
     Shutdown,
 }
 
@@ -56,6 +65,7 @@ impl ObsClient {
             })),
             cmd_tx: None,
             task: None,
+            admin_url: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -65,6 +75,12 @@ impl ObsClient {
 
     pub fn sender(&self) -> Option<mpsc::Sender<ObsCommand>> {
         self.cmd_tx.clone()
+    }
+
+    /// Record the URL the admin panel is being served from, so the OBS
+    /// client can rebuild the in-OBS browser source after a reconnect.
+    pub fn set_admin_url(&self, url: String) {
+        *self.admin_url.lock() = Some(url);
     }
 
     pub fn stop(&mut self) {
@@ -119,7 +135,6 @@ async fn try_connect(
         .await
         .with_context(|| format!("connect to OBS at {url}"))?;
 
-    // 1) Read Hello (op=0).
     let hello = read_json(&mut ws).await?;
     if hello.get("op").and_then(|v| v.as_i64()) != Some(0) {
         return Err(anyhow!("unexpected OBS hello op"));
@@ -128,7 +143,6 @@ async fn try_connect(
     let rpc_version = d.get("rpcVersion").and_then(|v| v.as_i64()).unwrap_or(1) as u32;
     let auth = d.get("authentication").cloned();
 
-    // 2) Send Identify (op=1).
     let identify_d = if let Some(auth) = auth {
         let challenge = auth
             .get("challenge")
@@ -157,7 +171,6 @@ async fn try_connect(
     ))
     .await?;
 
-    // 3) Wait for Identified (op=2).
     let identified = read_json(&mut ws).await?;
     if identified.get("op").and_then(|v| v.as_i64()) != Some(2) {
         return Err(anyhow!("OBS did not confirm identify"));
@@ -169,16 +182,28 @@ async fn try_connect(
         s.obs_connected = true;
     }
     {
-        let mut c = client.lock();
+        let c = client.lock();
         c.status.lock().connected = true;
         c.status.lock().version = Some(format!("rpc {rpc_version}"));
         c.status.lock().last_error = None;
     }
 
-    // 4) Split the socket and spawn read + write loops.
     let (mut read_half, mut write_half) = ws.split();
     let (cmd_tx, cmd_rx) = mpsc::channel::<ObsCommand>(32);
     client.lock().cmd_tx = Some(cmd_tx);
+
+    if cfg.register_dock {
+        let admin_url = client.lock().admin_url.lock().clone();
+        if let Some(url) = admin_url {
+            if let Err(e) =
+                ws_create_admin_browser_source(&mut write_half, &url).await
+            {
+                warn!(error = %e, "failed to auto-create admin browser source");
+            } else {
+                info!(input = DOCK_INPUT_NAME, "admin panel registered as in-OBS browser source");
+            }
+        }
+    }
 
     let read_state = state.clone();
     let read_client = client.clone();
@@ -235,13 +260,17 @@ async fn try_connect(
                     });
                     let _ = write_half.send(Message::Text(req.to_string().into())).await;
                 }
+                ObsCommand::OpenAdminInObs => {
+                    if let Err(e) = ws_open_admin_interact(&mut write_half).await {
+                        let mut c = write_client.lock();
+                        c.status.lock().last_error = Some(e.to_string());
+                    }
+                }
                 ObsCommand::Shutdown => break,
             }
         }
     });
 
-    // Wait for either side to finish; then exit and let the outer loop
-    // reconnect.
     let _ = tokio::join!(read_handle, write_handle);
     Ok(())
 }
@@ -270,7 +299,7 @@ where
             "requestType": "CreateInput",
             "requestId": uuid::Uuid::new_v4().to_string(),
             "requestData": {
-                "sceneName": "当前场景",
+                "sceneName": "Current Scene",
                 "inputName": fallback,
                 "inputKind": "text_gdiplus_v2",
                 "inputSettings": {
@@ -285,6 +314,71 @@ where
         }
     });
     write_half.send(Message::Text(create.to_string().into())).await?;
+    Ok(())
+}
+
+async fn ws_create_admin_browser_source<W>(write_half: &mut W, url: &str) -> Result<()>
+where
+    W: futures::Sink<Message, Error = tokio_tungstenite::tungstenite::Error> + Unpin,
+{
+    let create = serde_json::json!({
+        "op": 6,
+        "d": {
+            "requestType": "CreateInput",
+            "requestId": uuid::Uuid::new_v4().to_string(),
+            "requestData": {
+                "sceneName": "Current Scene",
+                "inputName": DOCK_INPUT_NAME,
+                "inputKind": "browser_source",
+                "inputSettings": {
+                    "url": url,
+                    "width": 480,
+                    "height": 640,
+                    "is_local_file": false,
+                    "restart_when_active": true,
+                    "css": "body{background:transparent;}"
+                },
+                "sceneItemEnabled": false
+            }
+        }
+    });
+    let _ = write_half.send(Message::Text(create.to_string().into())).await;
+
+    let update = serde_json::json!({
+        "op": 6,
+        "d": {
+            "requestType": "SetInputSettings",
+            "requestId": uuid::Uuid::new_v4().to_string(),
+            "requestData": {
+                "inputName": DOCK_INPUT_NAME,
+                "settings": {
+                    "url": url,
+                    "width": 480,
+                    "height": 640,
+                    "is_local_file": false,
+                    "restart_when_active": true,
+                    "css": "body{background:transparent;}"
+                }
+            }
+        }
+    });
+    write_half.send(Message::Text(update.to_string().into())).await?;
+    Ok(())
+}
+
+async fn ws_open_admin_interact<W>(write_half: &mut W) -> Result<()>
+where
+    W: futures::Sink<Message, Error = tokio_tungstenite::tungstenite::Error> + Unpin,
+{
+    let req = serde_json::json!({
+        "op": 6,
+        "d": {
+            "requestType": "OpenInputInteract",
+            "requestId": uuid::Uuid::new_v4().to_string(),
+            "requestData": { "inputName": DOCK_INPUT_NAME }
+        }
+    });
+    write_half.send(Message::Text(req.to_string().into())).await?;
     Ok(())
 }
 

@@ -1,9 +1,15 @@
 name: release
 
+# Triggers:
+#   1. push a tag matching "v*"  -> build all platforms and publish to Releases
+#   2. workflow_dispatch          -> manual build for sanity-check (artifacts only)
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -14,66 +20,121 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-22.04
+            os: ubuntu-20.04
             out: linux-x64
+            archive: tar.gz
           - target: aarch64-unknown-linux-gnu
-            os: ubuntu-22.04
+            os: ubuntu-20.04
             out: linux-arm64
+            archive: tar.gz
             cross: true
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             out: windows-x64
+            archive: zip
           - target: aarch64-apple-darwin
             os: macos-latest
             out: macos-arm64
+            archive: tar.gz
+
     steps:
       - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - name: Install Linux ARM64 cross deps
+
+      - name: Install Linux x64 build deps (alsa headers)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
+      - name: Install Linux ARM64 cross toolchain
         if: matrix.cross
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-      - name: Linux ARM64 linker
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            libc6-dev-arm64-cross \
+            libasound2-dev:arm64
+
+      - name: Configure Linux ARM64 linker
         if: matrix.cross
         run: |
-          cat >> $GITHUB_WORKSPACE/.cargo/config.toml <<EOF
+          mkdir -p .cargo
+          cat > .cargo/config.toml <<'EOF'
           [target.aarch64-unknown-linux-gnu]
           linker = "aarch64-linux-gnu-gcc"
           EOF
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
-      - name: Package
+
+      - name: Build (release)
+        run: cargo build --release --target ${{ matrix.target }} --locked
+
+      - name: Package single-file release
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           out="release/${{ matrix.out }}"
           rm -rf "$out"
-          mkdir -p "$out/bin"
+          mkdir -p "$out"
+
           ext=""
           case "${{ matrix.target }}" in
             *windows*) ext=".exe" ;;
           esac
-          cp "target/${{ matrix.target }}/release/stream-live-translate$ext" "$out/bin/"
-          cp -R dist/overlay dist/admin "$out/"
-          cp dist/launcher.sh "$out/launcher.sh"
-          chmod +x "$out/launcher.sh"
-          cp dist/launcher.bat "$out/" 2>/dev/null || true
-          cp dist/README.txt "$out/"
-          case "${{ matrix.target }}" in
-            *windows*)
-              (cd release && powershell -Command "Compress-Archive -Path '${{ matrix.out }}' -DestinationPath '${{ matrix.out }}.zip'")
-              ;;
-            *)
-              (cd release && tar -czf "${{ matrix.out }}.tar.gz" "${{ matrix.out }}")
-              ;;
-          esac
-      - uses: softprops/action-gh-release@v2
+
+          binary="target/${{ matrix.target }}/release/stream-live-translate$ext"
+          cp "$binary" "$out/"
+          chmod +x "$out/stream-live-translate$ext"
+
+          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ] || \
+             [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            printf '%s\n' \
+              "stream-live-translate - single-file build" \
+              "" \
+              "Run from anywhere:    ./stream-live-translate" \
+              "Config lives next to this binary as 'config.toml'." \
+              "" \
+              "Debian / Ubuntu system dependency (audio loopback):" \
+              "    sudo apt-get install -y libasound2 ffmpeg" \
+              "" \
+              "Then open http://127.0.0.1:8787/admin in any browser" \
+              "(or click the 'StreamLiveTranslateAdmin' source in OBS to" \
+              "configure the plugin in-OBS)." \
+              > "$out/README.txt"
+          fi
+
+          cd release
+          archive_file="${{ matrix.out }}.${{ matrix.archive }}"
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            (cd "${{ matrix.out }}" && zip -r "../$archive_file" . >/dev/null)
+          else
+            tar -czf "$archive_file" "${{ matrix.out }}"
+          fi
+
+          sha256sum "$archive_file" > "$archive_file.sha256"
+          ls -l "$archive_file" "$archive_file.sha256"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            release/${{ matrix.out }}.tar.gz
-            release/${{ matrix.out }}.zip
-            release/${{ matrix.out }}.sha256
+          name: stream-live-translate-${{ matrix.out }}
+          path: |
+            release/${{ matrix.out }}.${{ matrix.archive }}
+            release/${{ matrix.out }}.${{ matrix.archive }}.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release/${{ matrix.out }}.${{ matrix.archive }}
+            release/${{ matrix.out }}.${{ matrix.archive }}.sha256

@@ -1,0 +1,48 @@
+# Stream Live Translate 默认配置
+# 复制到可执行文件同目录即可。第一次启动会自己创建。
+# 大多数用户只需要填 [llm] 段的 api_key。
+
+[server]
+host = "127.0.0.1"
+port = 8787
+static_dir = "dist"   # 启动器所在目录下的 dist/ 子目录；绝对路径也行
+
+[llm]
+provider = "qwen-realtime"
+api_key = ""          # <-- 在这里填你自己的 DashScope / OpenAI Key
+model = "qwen3.5-livetranslate-flash-realtime"
+endpoint = ""         # 留空 = 用内置地址
+target_lang = "zh"
+translate_chinese = false   # true 的话中文也会被"翻译"（一般不必要）
+system_prompt = ""
+
+[audio]
+mode = "system"             # "system" = 系统音频环回；"device" = 选指定设备
+use_screen_capture_kit = true
+device = ""                 # mode=system 时留空
+sample_rate = 16000
+channels = 1
+
+[filter]
+silence_rms = 0.012
+music_spectral_flatness = 0.55
+min_segment_ms = 350
+max_segment_ms = 8000
+
+[obs]
+auto_connect = true
+host = "127.0.0.1"
+port = 4455
+password = ""               # 如果 OBS ws 启用了鉴权
+register_dock = true
+
+[overlay]
+font_family = "Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif"
+font_size = 48
+font_color = "#FFFFFF"
+background_color = "#000000"
+background_opacity = 0.55
+position = "bottom"          # bottom | top | middle
+layout = "single"            # single | double
+animation = "typewriter"     # typewriter | fade | slide
+mirror_to_text_source = false
