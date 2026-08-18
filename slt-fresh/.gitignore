@@ -1,0 +1,24 @@
+# Build artifacts
+/target
+/dist
+*.pdb
+*.exp
+*.lib
+*.obj
+
+# Local config (user data)
+config.toml
+*.log
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# OS-specific junk
+*.swp
+*~
+
+# Build/release notes scratch
+/release-draft.md
