@@ -81,6 +81,9 @@ rand = "0.8"
 # do not need to copy any folder or install any extra files.
 include_dir = "0.7"
 
+# Language detection for subtitle routing.
+unicode-script = "0.5"
+
 [features]
 default = []
 # Build without tray icon (e.g. headless / CI).

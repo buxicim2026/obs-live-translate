@@ -1,6 +1,5 @@
 # Build artifacts
 /target
-/dist
 *.pdb
 *.exp
 *.lib

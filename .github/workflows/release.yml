@@ -15,16 +15,19 @@ jobs:
   build:
     name: build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            os: ubuntu-20.04
+            os: ubuntu-22.04
+            container: ubuntu:20.04
             out: linux-x64
             archive: tar.gz
           - target: aarch64-unknown-linux-gnu
-            os: ubuntu-20.04
+            os: ubuntu-22.04
+            container: ubuntu:20.04
             out: linux-arm64
             archive: tar.gz
             cross: true
@@ -38,31 +41,48 @@ jobs:
             archive: tar.gz
 
     steps:
+      - name: Prepare Linux container
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git build-essential pkg-config
+
       - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
       - name: Install Linux x64 build deps (alsa headers)
         if: matrix.target == 'x86_64-unknown-linux-gnu'
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends libasound2-dev
 
       - name: Install Linux ARM64 cross toolchain
         if: matrix.cross
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          export DEBIAN_FRONTEND=noninteractive
+          dpkg --add-architecture arm64
+          apt-get update
+          apt-get install -y --no-install-recommends \
             gcc-aarch64-linux-gnu \
             libc6-dev-arm64-cross \
             libasound2-dev:arm64
 
       - name: Configure Linux ARM64 linker
         if: matrix.cross
+        shell: bash
         run: |
           mkdir -p .cargo
           cat > .cargo/config.toml <<'EOF'
@@ -70,7 +90,12 @@ jobs:
           linker = "aarch64-linux-gnu-gcc"
           EOF
 
+      - name: Cargo check (faster error feedback)
+        shell: bash
+        run: cargo check --target ${{ matrix.target }}
+
       - name: Build (release)
+        shell: bash
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package single-file release
@@ -86,9 +111,9 @@ jobs:
             *windows*) ext=".exe" ;;
           esac
 
-          binary="target/${{ matrix.target }}/release/stream-live-translate$ext"
+          binary="target/${{ matrix.target }}/release/stream-live-translate${ext}"
           cp "$binary" "$out/"
-          chmod +x "$out/stream-live-translate$ext"
+          chmod +x "$out/stream-live-translate${ext}"
 
           if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ] || \
              [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then

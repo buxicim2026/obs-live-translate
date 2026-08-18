@@ -1,4 +1,4 @@
-pub mod audio;
+﻿pub mod audio;
 pub mod config;
 pub mod embedded;
 pub mod lang;
@@ -35,11 +35,11 @@ pub fn config_path() -> PathBuf {
     about = "Real-time AI subtitle overlay for OBS Studio"
 )]
 struct Cli {
-    #[arg(long, short = '"'"'c'"'"', global = true)]
+    #[arg(long, short = 'c', global = true)]
     config: Option<PathBuf>,
     #[arg(long, global = true)]
     host: Option<String>,
-    #[arg(long, short = '"'"'p'"'"', global = true)]
+    #[arg(long, short = 'p', global = true)]
     port: Option<u16>,
     #[arg(long)]
     open: bool,

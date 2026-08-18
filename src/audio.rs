@@ -158,7 +158,7 @@ fn build_stream<T>(
     tx: PcmSender,
 ) -> Result<Stream>
 where
-    T: cpal::Sample + Send + 'static,
+    T: cpal::Sample + cpal::SizedSample + Send + 'static,
     f32: cpal::FromSample<T>,
 {
     let err_tx = tx.clone();
@@ -170,7 +170,7 @@ where
             for frame in data.chunks(channels.max(1)) {
                 let mut acc = 0.0f32;
                 for s in frame {
-                    acc += <f32 as cpal::FromSample<T>>::from_sample_(*s);
+                    acc += s.to_sample::<f32>();
                 }
                 let mono = acc / channels.max(1) as f32;
                 out.push((mono.clamp(-1.0, 1.0) * i16::MAX as f32) as i16);

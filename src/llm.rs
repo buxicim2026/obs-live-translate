@@ -92,10 +92,11 @@ pub mod qwen {
             req.headers_mut()
                 .insert("OpenAI-Beta", http::HeaderValue::from_static("realtime=v1"));
 
-            let (mut ws, _resp) = tokio_tungstenite::connect_async(req)
+            let (ws, _resp) = tokio_tungstenite::connect_async(req)
                 .await
                 .with_context(|| "connect to qwen realtime")?;
             info!("connected to qwen realtime");
+            let (mut write_half, mut read_half) = ws.split();
 
             // Configure session.
             let session = serde_json::json!({
@@ -117,14 +118,16 @@ pub mod qwen {
                     })
                 }
             });
-            ws.send(Message::Text(session.to_string().into())).await?;
+            write_half
+                .send(Message::Text(session.to_string().into()))
+                .await?;
 
             // Pump audio in one task, read events in another.
             let sink_for_read = sink.clone();
             let read = {
                 let sink = sink_for_read.clone();
                 async move {
-                    while let Some(msg) = ws.next().await {
+                    while let Some(msg) = read_half.next().await {
                         let msg = match msg {
                             Ok(m) => m,
                             Err(e) => {
@@ -168,18 +171,18 @@ pub mod qwen {
                         "type": "input_audio_buffer.append",
                         "audio": b64,
                     });
-                    if ws.send(Message::Text(msg.to_string().into())).await.is_err() {
+                    if write_half.send(Message::Text(msg.to_string().into())).await.is_err() {
                         break;
                     }
                 }
-                let _ = ws
+                let _ = write_half
                     .send(Message::Text(
                         serde_json::json!({"type": "input_audio_buffer.commit"})
                             .to_string()
                             .into(),
                     ))
                     .await;
-                let _ = ws.close().await;
+                let _ = write_half.close().await;
             };
 
             tokio::select! {
@@ -293,8 +296,9 @@ pub mod openai {
             req.headers_mut()
                 .insert("OpenAI-Beta", http::HeaderValue::from_static("realtime=v1"));
 
-            let (mut ws, _) = tokio_tungstenite::connect_async(req).await?;
-            ws.send(Message::Text(
+            let (ws, _) = tokio_tungstenite::connect_async(req).await?;
+            let (mut write_half, mut read_half) = ws.split();
+            write_half.send(Message::Text(
                 serde_json::json!({
                     "type": "session.update",
                     "session": {
@@ -318,7 +322,7 @@ pub mod openai {
             let read = {
                 let sink = sink.clone();
                 async move {
-                    while let Some(msg) = ws.next().await {
+                    while let Some(msg) = read_half.next().await {
                         let Ok(msg) = msg else { break };
                         if let Message::Text(t) = msg {
                             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&t) {
@@ -365,7 +369,7 @@ pub mod openai {
                         "type": "input_audio_buffer.append",
                         "audio": b64,
                     });
-                    if ws.send(Message::Text(msg.to_string().into())).await.is_err() {
+                    if write_half.send(Message::Text(msg.to_string().into())).await.is_err() {
                         break;
                     }
                 }

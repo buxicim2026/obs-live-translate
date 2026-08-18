@@ -188,7 +188,7 @@ async fn try_connect(
         c.status.lock().last_error = None;
     }
 
-    let (mut read_half, mut write_half) = ws.split();
+    let (mut write_half, mut read_half) = ws.split();
     let (cmd_tx, cmd_rx) = mpsc::channel::<ObsCommand>(32);
     client.lock().cmd_tx = Some(cmd_tx);
 
