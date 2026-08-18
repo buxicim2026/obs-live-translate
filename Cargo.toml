@@ -82,14 +82,14 @@ include_dir = "0.7"
 
 # Tray icon (best-effort, used only when feature enabled)
 [target.'cfg(target_os = "windows")'.dependencies]
-trayicon = "1.1"
+trayicon = "0.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-trayicon = "1.1"
+trayicon = "0.4"
 objc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-trayicon = "1.1"
+trayicon = "0.4"
 
 [features]
 default = []
