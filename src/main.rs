@@ -1,6 +1,7 @@
 ﻿pub mod audio;
 pub mod config;
 pub mod embedded;
+pub mod ingest;
 pub mod lang;
 pub mod llm;
 pub mod obs;
@@ -45,6 +46,10 @@ struct Cli {
     open: bool,
     #[arg(long)]
     headless: bool,
+    /// Override `audio.mode` (e.g. the OBS plugin passes `obs_filter`).
+    /// The value is persisted into config.toml.
+    #[arg(long, global = true)]
+    audio_mode: Option<String>,
 }
 
 pub struct AppState {
@@ -130,6 +135,14 @@ async fn main() -> Result<()> {
     if let Some(port) = cli.port {
         cfg.server.port = port;
     }
+    if let Some(mode) = &cli.audio_mode {
+        cfg.audio.mode = mode.clone();
+        if let Err(e) = cfg.save(&cfg_path) {
+            warn!(error = %e, "failed to persist audio mode override");
+        } else {
+            info!(mode = %mode, "audio mode overridden by CLI");
+        }
+    }
 
     let subtitle = Arc::new(subtitle::SubtitleHub::default());
     let pipeline = Arc::new(pipeline::PipelineHandle::new());
@@ -144,6 +157,11 @@ async fn main() -> Result<()> {
     });
 
     pipeline::spawn(state.clone(), cfg_path.clone());
+
+    let ingest_state = state.clone();
+    tokio::spawn(async move {
+        ingest::serve(ingest_state).await;
+    });
 
     let obs_client = obs::spawn(state.clone());
     *state.obs_cmd_tx.lock() = obs_client.lock().sender();

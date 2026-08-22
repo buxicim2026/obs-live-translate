@@ -17,11 +17,13 @@ translate_chinese = false   # true 的话中文也会被"翻译"（一般不必�
 system_prompt = ""
 
 [audio]
-mode = "system"             # "system" = 系统音频环回；"device" = 选指定设备
+mode = "system"             # "system" = 系统音频环回；"device" = 选指定设备；
+                            # "obs_filter" = 由 OBS 插件的"实时字幕捕获"滤镜送音频（插件模式下自动设置）
 use_screen_capture_kit = true
 device = ""                 # mode=system 时留空
 sample_rate = 16000
 channels = 1
+ingest_port = 8788          # obs_filter 模式下接收 OBS 滤镜音频的本地 TCP 端口；0 = 禁用
 
 [filter]
 silence_rms = 0.012

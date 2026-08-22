@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Cross-platform build + package script for Stream Live Translate.
-# Produces `release/<platform>/` with the binary and all static assets,
-# then zips it.
+# Cross-platform build + package script for Stream Live Translate
+# (standalone engine distribution). Produces `release/<platform>/` with the
+# binary and all static assets, then zips it.
+#
+# NOTE: for the OBS plugin package (copy-into-OBS folder distribution), use
+# scripts/package-plugin.sh instead (see docs/PLUGIN.md).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

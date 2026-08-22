@@ -5,6 +5,10 @@
 *.lib
 *.obj
 
+# Plugin packaging outputs
+/build/
+/release/
+
 # Local config (user data)
 config.toml
 *.log

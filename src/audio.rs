@@ -15,7 +15,7 @@ use anyhow::{anyhow, Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SampleRate, Stream, StreamConfig};
 use parking_lot::Mutex;
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 use crate::config::AudioConfig;
 
@@ -32,6 +32,14 @@ pub struct CaptureHandle {
     pub stream: Stream,
     pub spec: CaptureSpec,
 }
+
+// SAFETY: cpal::Stream internally stores raw pointers and is therefore !Send
+// by default, but all stream operations are synchronized inside cpal (the
+// audio callback runs on cpal's own thread). Moving/dropping the handle
+// across threads — required because it lives in the shared AppState behind
+// a Mutex — is safe on all supported backends.
+unsafe impl Send for CaptureHandle {}
+unsafe impl Sync for CaptureHandle {}
 
 pub struct AudioCapturer {
     cfg: AudioConfig,

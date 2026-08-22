@@ -2,6 +2,12 @@
 
 Stream Live Translate 用 Rust 1.74+ 写，跨平台只依赖各系统的标准库。下面按平台给出"装好就能编译"的最短步骤。
 
+> **要编译的是 OBS 插件包？**（C 薄壳插件 + 引擎，复制进 OBS 即用的正式产品形态）
+> 直接看 [docs/PLUGIN.md](PLUGIN.md) 的"手动编译"章节：Windows 跑 `scripts\package-plugin.ps1`，
+> Linux/macOS 跑 `bash scripts/package-plugin.sh`；或打 `v*` tag 让 GitHub Actions（`plugin.yml`）自动产出三平台成品。
+> 下面内容针对**引擎本体**（Rust 单二进制）的编译。
+
+
 ## 通用前置
 
 | 工具 | 版本 | 用途 |

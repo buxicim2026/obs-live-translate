@@ -15,7 +15,6 @@ use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use base64::Engine;
 use futures::{SinkExt, StreamExt};
-use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio_tungstenite::tungstenite::{client::IntoClientRequest, http, Message};
@@ -42,7 +41,7 @@ pub fn build(cfg: &LlmConfig) -> Result<Arc<dyn LlmProvider>> {
     match cfg.provider.as_str() {
         "qwen-realtime" => Ok(Arc::new(qwen::QwenRealtime::new(cfg.clone())?)),
         "openai-realtime" => Ok(Arc::new(openai::OpenAiRealtime::new(cfg.clone())?)),
-        "mock" => Ok(Arc::new(mock::MockProvider::new(cfg.clone()))),
+        "mock" => Ok(Arc::new(mock::MockProvider::new(cfg.clone())?)),
         other => Err(anyhow!("unknown LLM provider `{other}`")),
     }
 }

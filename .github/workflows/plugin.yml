@@ -1,0 +1,116 @@
+name: OBS Plugin
+
+# Builds the "copy into OBS plugins folder" plugin packages for
+# Windows x64, Linux x64 and macOS Apple Silicon, and publishes them
+# to the GitHub Release when a version tag is pushed.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: {}
+
+env:
+  OBS_VERSION: "30.2.3"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  win-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Cache OBS SDK assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/plugin-sdk/obs-studio
+            build/plugin-sdk/obs-full.zip
+          key: obs-sdk-win-${{ env.OBS_VERSION }}
+
+      - name: Package plugin
+        shell: pwsh
+        run: ./scripts/package-plugin.ps1 -ObsVersion $env:OBS_VERSION
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obs-plugin-win-x64
+          path: |
+            release/stream-live-translate-obs-win-x64-*.zip
+            release/stream-live-translate-obs-win-x64-*.zip.sha256
+
+  linux-x64:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake git pkg-config libasound2-dev
+
+      - name: Cache OBS SDK assets
+        uses: actions/cache@v4
+        with:
+          path: build/plugin-sdk/obs-studio
+          key: obs-sdk-linux-${{ env.OBS_VERSION }}
+
+      - name: Package plugin
+        run: |
+          chmod +x scripts/package-plugin.sh
+          OBS_VERSION=$OBS_VERSION bash scripts/package-plugin.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obs-plugin-linux-x64
+          path: |
+            release/stream-live-translate-obs-linux-x64-*.tar.gz
+            release/stream-live-translate-obs-linux-x64-*.tar.gz.sha256
+
+  macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache OBS SDK assets
+        uses: actions/cache@v4
+        with:
+          path: build/plugin-sdk/obs-studio
+          key: obs-sdk-macos-${{ env.OBS_VERSION }}
+
+      - name: Package plugin
+        run: |
+          chmod +x scripts/package-plugin.sh
+          OBS_VERSION=$OBS_VERSION bash scripts/package-plugin.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: obs-plugin-macos-arm64
+          path: |
+            release/stream-live-translate-obs-macos-arm64-*.tar.gz
+            release/stream-live-translate-obs-macos-arm64-*.tar.gz.sha256
+
+  release:
+    needs: [win-x64, linux-x64, macos-arm64]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: obs-plugin-*
+          path: artifacts
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*
+          generate_release_notes: true

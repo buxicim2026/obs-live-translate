@@ -30,7 +30,9 @@ pub struct PipelineHandle {
 }
 
 struct PipelineInner {
-    _capturer: AudioCapturer,
+    _capturer: Option<AudioCapturer>,
+    /// Present in `obs_filter` mode; unregisters the ingest sender on drop.
+    _ingest_guard: Option<crate::ingest::Registration>,
     _llm_task: tokio::task::JoinHandle<()>,
     _vad_task: tokio::task::JoinHandle<()>,
     _audio_task: tokio::task::JoinHandle<()>,
@@ -135,14 +137,28 @@ async fn try_start(state: &Arc<AppState>, handle: &Arc<PipelineHandle>) -> Resul
         anyhow::bail!("API key not set; configure it in the admin panel first");
     }
 
-    let (raw_tx, raw_rx) = mpsc::channel::<Vec<i16>>(PCM_CHANNEL_CAPACITY);
+    let (raw_tx, mut raw_rx) = mpsc::channel::<Vec<i16>>(PCM_CHANNEL_CAPACITY);
     let (speech_tx, speech_rx) = mpsc::channel::<Vec<i16>>(PCM_CHANNEL_CAPACITY);
 
-    let capturer = AudioCapturer::new(cfg.audio.clone());
-    capturer
-        .start(raw_tx)
-        .map_err(|e| anyhow::anyhow!("audio start failed: {e}"))?;
-    {
+    let use_obs_filter = cfg.audio.mode == "obs_filter";
+    let mut capturer_slot: Option<AudioCapturer> = None;
+    let mut ingest_guard: Option<crate::ingest::Registration> = None;
+    if use_obs_filter {
+        // Audio arrives over the local ingest TCP port from the OBS plugin
+        // filter; no cpal capture needed.
+        ingest_guard = Some(crate::ingest::register(raw_tx.clone()));
+        info!(
+            port = cfg.audio.ingest_port,
+            "audio input: OBS filter ingest (waiting for the plugin to stream audio)"
+        );
+    } else {
+        let capturer = AudioCapturer::new(cfg.audio.clone());
+        capturer
+            .start(raw_tx)
+            .map_err(|e| anyhow::anyhow!("audio start failed: {e}"))?;
+        capturer_slot = Some(capturer);
+    }
+    if !use_obs_filter {
         let mut s = state.status.write();
         s.audio_active = true;
         s.last_error = None;
@@ -234,7 +250,8 @@ async fn try_start(state: &Arc<AppState>, handle: &Arc<PipelineHandle>) -> Resul
     });
 
     *handle.inner.lock() = Some(PipelineInner {
-        _capturer: capturer,
+        _capturer: capturer_slot,
+        _ingest_guard: ingest_guard,
         _llm_task: llm_task,
         _vad_task: tokio::spawn(async move {}), // legacy placeholder
         _audio_task: audio_task,

@@ -46,9 +46,15 @@ pub struct LlmConfig {
     pub system_prompt: Option<String>,
 }
 
+fn default_ingest_port() -> u16 {
+    8788
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioConfig {
-    /// `"system"` (loopback) or `"device"` (input mic / specific output).
+    /// `"system"` (loopback), `"device"` (input mic / specific output) or
+    /// `"obs_filter"` (audio streamed in from the OBS plugin's capture
+    /// filter; no system capture needed).
     pub mode: String,
     /// When mode=system on macOS, set true to capture system audio via
     /// ScreenCaptureKit (requires the user to grant permission once).
@@ -59,6 +65,10 @@ pub struct AudioConfig {
     pub sample_rate: u32,
     /// Channels. 0 = device default.
     pub channels: u16,
+    /// TCP port on 127.0.0.1 that receives audio from the OBS plugin
+    /// filter (mode = "obs_filter"). 0 disables the ingest listener.
+    #[serde(default = "default_ingest_port")]
+    pub ingest_port: u16,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,6 +135,7 @@ impl Default for Config {
                 device: String::new(),
                 sample_rate: 16000,
                 channels: 1,
+                ingest_port: 8788,
             },
             filter: FilterConfig {
                 silence_rms: 0.012,

@@ -1,23 +1,23 @@
 # Stream Live Translate
 
-> 实时 AI 字幕 / 同声传译 OBS 插件 —— 系统级音频环回采集 + 大模型流式翻译 + 浏览器源字幕叠加。
+> 实时 AI 字幕 / 同声传译 OBS 插件 —— 从 OBS 媒体源内部取音频 + 大模型流式翻译 + 浏览器源字幕叠加。
 
-把发布包解压到任意位置即可运行，**无需任何安装器、无需复制到 OBS 目录**。首次启动后填入你自己的大模型 API Key，OBS 里加一个浏览器源指向 `http://127.0.0.1:8787/overlay`，字幕就出现在直播画面上了。
+**免安装：把插件文件夹复制进 OBS 的插件目录就能用。**OBS 启动时插件自动拉起内置引擎，给任意源挂上“实时字幕捕获”滤镜，填上你自己的大模型 API Key，中文字幕就出现在直播画面上了。详细安装/使用/编译说明见 [docs/PLUGIN.md](docs/PLUGIN.md)。
 
 ## 功能一览
 
 | 功能 | 说明 |
 | --- | --- |
-| 跨平台 | Windows 10/11、Debian 11+ / Ubuntu 20.04+、macOS 13+ (Apple Silicon) |
-| 单文件分发 | 一个二进制搞定全部功能，前端资源全部内嵌，无需附带任何目录 |
-| 便携模式 | 配置文件、缓存、日志都在可执行文件同目录，移动文件夹即可整体迁移 |
-| 系统音频环回 | 抓取 OBS 监听输出的声音，无需虚拟声卡 |
+| OBS 原生插件 | 复制插件文件夹到 OBS 插件目录即用，无需安装器；OBS 启动自动拉起引擎、退出自动回收 |
+| OBS 内部取音频 | 音频滤镜直接捕获媒体源等任意源的声音，不受系统其它声音干扰 |
+| 跨平台 | Windows 10/11 x64、Linux x64（Debian 11+/Ubuntu 20.04+）、macOS 13+（Apple Silicon） |
+| 侧边栏控制台 | 管理面板通过 OBS 自带“自定义浏览器停靠部件”钉在侧边栏，填 Key/调样式不用切出 OBS |
 | 流式翻译 | Qwen3.5-LiveTranslate-Flash-Realtime WebSocket 流式接口，低延迟 |
 | 自动语言检测 | 中文直通不翻译；其它语种自动同传为中文 |
 | VAD + 音乐检测 | 检测到静音或音乐时跳过该片段，省 token 也不污染字幕 |
-| OBS 内配置 | 自动在 OBS Sources 里创建 `StreamLiveTranslateAdmin` 浏览器源，OBS 主窗口里就能改设置，不用切出去 |
 | 浏览器源字幕 | 字幕以 Browser Source 呈现，可自定义字体、颜色、动画 |
 | API Key 本地保存 | 配置只存在本地 `config.toml`，不联网回传 |
+| 独立运行模式 | 不用 OBS 插件也能单独跑，系统音频环回模式保留（见 docs/USAGE.md） |
 
 ## 系统要求
 
@@ -30,68 +30,35 @@
 
 > 没有 musl 静态版本（alsa 不是 Rust crate，无法静态链）。**glibc ≥ 2.31** 已覆盖目前所有受支持的 Debian / Ubuntu 发行版。
 
-## 快速使用
+## 快速使用（插件模式）
 
-### 1. 解压
+### 1. 安装插件（复制即用）
 
-把发布包（`stream-live-translate-<platform>.zip` / `.tar.gz`）解压到**任意目录**，比如：
+从 Releases 下载对应平台的插件包（`stream-live-translate-obs-<平台>-<版本>.zip/.tar.gz`），解压后把 `stream-live-translate` 文件夹放进：
 
-- Windows：`D:\Tools\stream-live-translate\`
-- Linux/macOS：`~/Applications/stream-live-translate/`
-
-**整个文件夹可以自由移动、备份、拷贝到别的机器**，因为所有状态都在这个文件夹内（见下文"便携模式"）。
-
-### 2. 安装系统依赖（仅 Linux）
-
-Debian / Ubuntu：
-
-```bash
-sudo apt-get update
-sudo apt-get install -y libasound2 ffmpeg
-```
-
-- `libasound2` —— cpal（音频采集）通过 alsa 取系统环回，**没有它插件完全起不来**。
-- `ffmpeg` —— 可选；用于把多声道音频降采样到 16kHz 单声道喂给大模型。如果不装，插件会用一个纯 Rust 的简易重采样回退，效果稍差。
-
-Fedora / RHEL：
-
-```bash
-sudo dnf install -y alsa-lib ffmpeg
-```
-
-Arch / Manjaro：
-
-```bash
-sudo pacman -S alsa-lib ffmpeg
-```
-
-Windows / macOS 跳过这步。
-
-### 3. 启动
-
-| 平台 | 命令 |
+| 平台 | 插件目录（推荐，无需管理员权限） |
 | --- | --- |
-| Windows | 双击 `stream-live-translate.exe`（或 `launcher.bat`） |
-| Linux   | `cd ~/Applications/stream-live-translate && ./stream-live-translate` |
-| macOS   | 双击 `stream-live-translate`（或 `launcher.sh`） |
+| Windows | `%APPDATA%\obs-studio\plugins\` |
+| Linux | `~/.config/obs-studio/plugins/` |
+| macOS | `~/Library/Application Support/obs-studio/plugins/` |
 
-### 4. 首次配置
+也可以放进 OBS 安装目录下的 `plugins\` 文件夹。然后启动/重启 OBS。
 
-首次启动会**自动**在可执行文件同目录创建 `config.toml`。两种打开方式：
+### 2. 挂音频滤镜（告诉插件听哪个源）
 
-- **外部浏览器**：访问 <http://127.0.0.1:8787/admin>
-- **OBS 内（推荐）**：连上 OBS 之后，Sources 列表里会自动多一个 `StreamLiveTranslateAdmin` 源，右键 → **互动 (Interact)** 就在 OBS 主窗口里打开设置面板；或者在管理页面点"在 OBS 中打开设置面板"按钮。
+右键你要出字幕的源（媒体源、窗口采集等）→ **滤镜** → `+` → **实时字幕捕获**。
 
-填入大模型 API Key → 保存。
+### 3. 侧边栏控制台填 API Key（一次性）
 
-### 5. OBS 里加字幕源
+OBS 菜单 **视图 → 停靠部件 → 自定义浏览器停靠部件**，URL 填 `http://127.0.0.1:8787/admin`；侧边栏出现管理面板，填入大模型 API Key 保存。
 
-1. OBS 里加一个"**浏览器**"源。
-2. URL 填 `http://127.0.0.1:8787/overlay`
-3. 宽 `1920`、高 `240`
-4. 勾选"**刷新浏览器源时关闭**"（避免字幕闪断）
+### 4. 加字幕源
 
-### 6. 开播
+场景里添加 **浏览器** 源，URL `http://127.0.0.1:8787/overlay`，建议 1920×240。
+
+### 5. 开播
+
+说话出中文字幕；外语自动同传成中文；放音乐/静音时自动跳过。
 
 ## 便携模式（Portable Mode）
 
@@ -117,7 +84,7 @@ my-folder/
 
 ## 编译
 
-详见 [docs/BUILD.md](docs/BUILD.md)。最短路径：
+引擎本体（Rust）最短路径：
 
 ```bash
 # 任何平台都只需要装 Rust 1.74+ 和系统基础依赖
@@ -125,11 +92,18 @@ cargo build --release
 # 产物在 target/release/stream-live-translate(.exe)
 ```
 
-跨平台发布包走 GitHub Actions（见 `.github/workflows/release.yml`），打 tag `v*` 自动构建 4 个目标（Linux x64 / arm64 / Windows x64 / macOS arm64）并发布到 Releases。
+**OBS 插件包**（含 C 薄壳插件 + 引擎，三平台）见 [docs/PLUGIN.md](docs/PLUGIN.md)：本地跑 `scripts/package-plugin.ps1`（Windows）/ `scripts/package-plugin.sh`（Linux/macOS）；或者直接打 `v*` tag，GitHub Actions（`plugin.yml`）自动产出三平台插件包到 Releases，下载即用。
+
+跨平台引擎发布包仍由 `.github/workflows/release.yml` 在打 tag 时自动构建（4 个目标）。
 
 ## 本地打发布包
 
 ```bash
+# OBS 插件包（推荐，正式产品形态）
+#   Windows：.\scripts\package-plugin.ps1
+#   Linux / macOS：bash scripts/package-plugin.sh
+
+# 独立程序发布包（系统环回模式）
 # Windows
 ./scripts/build-all.ps1
 # Linux / macOS
@@ -155,9 +129,10 @@ linux-x64.tar.gz
 ```
 stream-live-translate/
 ├── Cargo.toml
-├── src/                  # Rust 主程序（单二进制）
-│   ├── main.rs           # CLI / 启动 / 便携模式 config 解析
-│   ├── audio.rs          # cpal 跨平台音频环回
+├── src/                  # Rust 引擎（单二进制）
+│   ├── main.rs           # CLI / 启动 / 便携模式 config 解析（--audio-mode 供插件注入）
+│   ├── audio.rs          # cpal 跨平台音频环回（独立模式用）
+│   ├── ingest.rs         # OBS 滤镜音频接收（TCP/SLTA 协议）
 │   ├── vad.rs            # 静音 / 音乐检测
 │   ├── llm.rs            # 大模型流式客户端
 │   ├── lang.rs           # 语言检测
@@ -167,16 +142,18 @@ stream-live-translate/
 │   ├── subtitle.rs       # 字幕事件总线
 │   ├── config.rs         # toml 配置（load / save / merge patch）
 │   └── embedded.rs       # compile-time 内嵌 dist/ 资源
+├── plugin/               # C 薄壳 OBS 插件（滤镜 + 引擎进程管理 + CMake + locale）
 ├── overlay/              # 浏览器源字幕页面
 ├── admin/                # 管理面板
 ├── dist/                 # 内嵌资源 + 启动器 + 默认 config.toml
-├── scripts/              # 跨平台打包脚本
-├── docs/                 # 详细文档
-└── .github/workflows/    # CI: 打 tag 自动构建 4 平台
+├── scripts/              # 引擎打包 + OBS 插件打包脚本（三平台）
+├── docs/                 # 详细文档（PLUGIN.md = 插件模式指南）
+└── .github/workflows/    # CI：release.yml 引擎 / plugin.yml 三平台插件包
 ```
 
 ## 文档
 
+- [docs/PLUGIN.md](docs/PLUGIN.md) —— **OBS 插件模式：安装、使用、三平台编译**
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) —— 模块拓扑、数据流
 - [docs/BUILD.md](docs/BUILD.md) —— 各种环境下从源码编译
 - [docs/USAGE.md](docs/USAGE.md) —— 完整使用文档、API 列表

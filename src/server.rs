@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::{Query, State};
+use axum::extract::State;
 use axum::http::{header, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
@@ -28,7 +28,7 @@ use tower_http::services::ServeDir;
 use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{info, warn};
 
-use crate::config::{AudioConfig, Config, FilterConfig, LlmConfig, ObsConfig, OverlayConfig, ServerConfig};
+use crate::config::{Config, ServerConfig};
 use crate::embedded;
 use crate::AppState;
 
@@ -238,7 +238,7 @@ fn merge_json(cfg: &mut Config, patch: &serde_json::Value) -> anyhow::Result<()>
 
 fn json_merge(dst: &mut serde_json::Value, patch: &serde_json::Value) {
     use serde_json::Value::Object;
-    if let (Object(d), Object(p)) = (dst, patch) {
+    if let (Object(d), Object(p)) = (&mut *dst, patch) {
         for (k, v) in p {
             if v.is_null() {
                 d.remove(k);
@@ -395,12 +395,4 @@ fn config_path() -> std::path::PathBuf {
         return dir;
     }
     local
-}
-
-// Touch the types we re-export via the file to keep the public surface
-// discoverable.
-#[allow(dead_code)]
-fn _touch_types() {
-    let _ = (AudioConfig::default, FilterConfig::default, LlmConfig::default,
-             ObsConfig::default, OverlayConfig::default, ServerConfig::default);
 }

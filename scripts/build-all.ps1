@@ -1,7 +1,11 @@
-# Cross-platform build + package for Stream Live Translate.
+# Cross-platform build + package for Stream Live Translate (standalone
+# engine distribution).
 # Windows PowerShell entry point. Builds the current host and packages
 # release/<platform>/. For cross-compiling, run this on each target OS
 # or use the GitHub Actions workflow at .github/workflows/release.yml.
+#
+# NOTE: for the OBS plugin package (copy-into-OBS folder distribution),
+# use scripts/package-plugin.ps1 instead (see docs/PLUGIN.md).
 [CmdletBinding()]
 param(
     [string]$Target = ""
